@@ -1,0 +1,8 @@
+target/
+application-local.properties
+*.class
+*.jar
+*.war
+.idea/
+*.iml
+.DS_Store

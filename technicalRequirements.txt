@@ -1,0 +1,18 @@
+This game is a multiplayer game that runs in a browser.
+The frontend is a react project built with vite. The command for it is "npm create vite@latest conquestimo-frontend -- --template react". The frontend runs on port 5015. Frontend dependencies: react-router-dom (routing), axios (HTTP requests), @stomp/stompjs + sockjs-client (WebSocket), js-cookie (JWT cookie storage).
+Backend is java spring boot 4.0.3. The backend runs on port 3015.
+Database is PostgreSQL. The database will be available at localhost:5432. The database name is conquestimo, username is ravager and password is 'totalrampage1567'. This is a development database, but keep those credentials in application-local.properties file, that is git ignored.
+Flyway is used to setup the database.
+Backend build tool is maven.
+The java backend files will be stored in conquestimo-backend folder which will also be the name for the backend project.
+
+Each player is required to make a user, so we will have a create user page and a login page.
+After logging in the player is presented with a lobby which lists all games in progress. This is also where new games are created. A game can have a password to limit the players who can join. This is set when creating a new game. If all players leave a game, the game is deleted.
+
+WebSockets are used for real-time communication between the server and clients. The backend uses Spring WebSocket with STOMP over SockJS (spring-boot-starter-websocket). The frontend uses @stomp/stompjs with sockjs-client. The server broadcasts game state updates to all players in a game via a topic channel (e.g. /topic/game/{gameId}). WebSockets are used for: broadcasting turn resolution results (army movements, battle outcomes, rebellions), notifying players when turn resolution begins, lobby updates (players joining/leaving, game state changes) and turn timer sync. Player actions during their turn (selecting region tasks, queuing army movements) use regular REST calls as they only affect that player's state. Login, user creation and game creation also use REST.
+
+Each game can have 3 states:
+Lobby - The game has now yet started, but players can join. Once the game creator presses the start button the game is in progress and the first turn starts. All player slots that are not filled by human players are filled with AI players.
+In-progress - The game is in progress. If a player joins in this state they can either spectate or take over an AI player.
+Ended - The game has ended. No players can make any decisions, but everyone can click on regions and view their information. A score table is shown. This state is maintained until there is at least 1 player left in the room.
+

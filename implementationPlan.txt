@@ -1,0 +1,481 @@
+CONQUESTIMO - IMPLEMENTATION PLAN
+==================================
+
+This plan is divided into phases. Each phase should be completed before moving to the next.
+Backend = conquestimo-backend (Spring Boot 4.0.3, Maven, PostgreSQL, Flyway)
+Frontend = conquestimo-frontend (React, Vite)
+
+
+═══════════════════════════════════════════════════════
+PHASE 1: PROJECT SETUP
+═══════════════════════════════════════════════════════
+
+Backend:
+- Scaffold Spring Boot project using Spring Initializr or Maven with the following dependencies:
+  spring-boot-starter-web, spring-boot-starter-data-jpa, spring-boot-starter-security,
+  spring-boot-starter-websocket, spring-boot-starter-validation,
+  postgresql driver, flyway-core
+- Create application.properties with datasource url (localhost:5432/conquestimo) and empty username/password
+- Set server.port=3015 in application.properties
+- Create application-local.properties (gitignored) with username=ravager and password=totalrampage1567
+- Set spring.profiles.active=local in application.properties
+- Add application-local.properties to .gitignore
+- Configure CORS in Spring Boot to allow requests from http://localhost:5015
+  This can be done with a WebMvcConfigurer bean or @CrossOrigin, but a global WebMvcConfigurer is preferred:
+  Allow origin http://localhost:5015, all methods (GET, POST, PUT, DELETE), and authorization headers.
+  The WebSocket endpoint also needs CORS allowed origins set to http://localhost:5015 in the WebSocket config.
+
+Frontend:
+- Scaffold project: npm create vite@latest conquestimo-frontend -- --template react
+- Install dependencies: @stomp/stompjs, sockjs-client, react-router-dom, axios
+- Set frontend port to 5015 by adding server.port=5015 to vite.config.js
+
+
+═══════════════════════════════════════════════════════
+PHASE 2: DATABASE SCHEMA (FLYWAY MIGRATIONS)
+═══════════════════════════════════════════════════════
+
+Create Flyway migration scripts in resources/db/migration in this order:
+
+V1 - app_user table:
+  id (bigserial PK), username (varchar unique not null), password_hash (varchar not null), created_at (timestamp)
+  Note: Do not name the table "user" as it is a reserved word in PostgreSQL.
+
+V2 - game table:
+  id (bigserial PK), state (varchar: LOBBY / IN_PROGRESS / ENDED),
+  turn_number (int default 1), season (varchar: SPRING / SUMMER / AUTUMN / WINTER, default SPRING),
+  turn_timer_seconds (int default 120), movement_cap (int default 5),
+  password_hash (varchar nullable), created_at (timestamp)
+
+V3 - game_player table:
+  id (bigserial PK), game_id (FK game), user_id (FK app_user, nullable for AI players),
+  is_ai (boolean default false), gold (int default 0), color (varchar),
+  is_eliminated (boolean default false),
+  ai_target_player_id (bigint nullable), ai_attack_turn_count (int default 0),
+  ai_regions_captured_this_cycle (int default 0), ai_dev_roll_turn (int default 0)
+
+V4 - game_region table:
+  id (bigserial PK), game_id (FK game), territory_id (varchar, matches id from territories.ts),
+  owner_player_id (FK game_player, nullable = neutral),
+  army_count (int default 0), farm_level (int default 1), fortress_level (int default 0),
+  culture (varchar: PRIMAL / BASIC / INTERMEDIATE / ADVANCED, default PRIMAL),
+  loyalty (int default 100),
+  current_task (varchar: ARMIES / CULTURE / BUILDING / DIPLOMATS / GOLD / NONE, default NONE),
+  army_production_progress (decimal default 0),
+  construction_target (varchar nullable: FARM / FORTRESS),
+  construction_progress (decimal default 0),
+  culture_upgrade_progress (decimal default 0)
+
+V5 - army_movement table:
+  id (bigserial PK), game_id (FK game), player_id (FK game_player),
+  from_region_id (FK game_region), to_region_id (FK game_region),
+  army_count (int), is_attack (boolean), turn_number (int), is_executed (boolean default false)
+
+V6 - battle_record table:
+  id (bigserial PK), game_id (FK game), region_id (FK game_region),
+  attacking_player_id (FK game_player), defending_player_id (FK game_player nullable for rebellions),
+  attacker_won (boolean), turn_number (int)
+
+V7 - turn_submission table:
+  id (bigserial PK), game_id (FK game), player_id (FK game_player), turn_number (int)
+  Unique constraint on (game_id, player_id, turn_number)
+
+
+═══════════════════════════════════════════════════════
+PHASE 3: USER AUTHENTICATION
+═══════════════════════════════════════════════════════
+
+Backend:
+- AppUser entity and AppUserRepository
+- UserService with register (hash password with BCrypt) and login methods
+- Spring Security configuration:
+  - Stateless session with JWT tokens
+  - Public endpoints: POST /api/auth/register, POST /api/auth/login
+  - All other endpoints require valid JWT
+- AuthController with /api/auth/register and /api/auth/login endpoints
+- JwtUtil class for generating and validating tokens
+
+Frontend:
+- Register page: username + password fields, calls POST /api/auth/register
+- Login page: username + password fields, calls POST /api/auth/login
+- Store JWT token in localStorage
+- Axios interceptor to attach JWT to all requests
+- Auth context to track logged-in user across pages
+- Route guard to redirect unauthenticated users to login page
+
+
+═══════════════════════════════════════════════════════
+PHASE 4: LOBBY SYSTEM
+═══════════════════════════════════════════════════════
+
+Backend:
+- Game entity and GameRepository
+- GameService with: createGame, listGames, joinGame, leaveGame, deleteGameIfEmpty
+- GameController REST endpoints:
+  - GET /api/games — list all games with state, player count, has password
+  - POST /api/games — create game (timer, movement cap, optional password, max players 2-5)
+  - POST /api/games/{id}/join — join game (send password if required)
+  - POST /api/games/{id}/leave — leave game
+- WebSocket configuration class (WebSocketMessageBrokerConfigurer)
+  - Message broker on /topic
+  - Application destination prefix /app
+  - SockJS endpoint at /ws
+- Broadcast to /topic/lobby when a game is created, updated or deleted
+
+Frontend:
+- Lobby page showing list of games (name, state, player count, lock icon if password)
+- Create game button opens a form modal (timer duration, movement cap, player slots, optional password)
+- Join button on each game row (prompts for password if locked)
+- WebSocket connection on lobby page, subscribes to /topic/lobby for live updates
+
+
+═══════════════════════════════════════════════════════
+PHASE 5: GAME LOBBY (PRE-START)
+═══════════════════════════════════════════════════════
+
+Backend:
+- GET /api/games/{id} — game details including player list
+- POST /api/games/{id}/start — only callable by game creator, transitions to IN_PROGRESS
+  - Fill remaining player slots with AI game_player records
+  - Trigger game initialization (see Phase 6)
+- WebSocket broadcast to /topic/game/{id} when players join or leave the lobby or game starts
+
+Frontend:
+- Game lobby room page showing who has joined
+- Start button visible only to game creator
+- Subscribe to /topic/game/{id} for player join/leave events
+- Redirect all players to the game view when game starts
+
+
+═══════════════════════════════════════════════════════
+PHASE 6: GAME INITIALIZATION
+═══════════════════════════════════════════════════════
+
+Backend:
+- Port territory data from territories.ts into a Java resource (JSON file or hardcoded list)
+  - Store: id, name, adjacencies. SVG path and centroid coordinates are only needed by the frontend.
+- GameInitializationService:
+  - Create one game_region record per territory for this game
+  - Set all regions: farm_level=1, culture=PRIMAL, loyalty=100, army_count=0
+  - For ~1/3 of neutral regions (randomly selected): set culture=BASIC
+  - For neutral regions: assign army_count randomly between 1 and 4, farm_level randomly between 1 and 3
+  - Player spawning:
+    - Randomly assign one region per player
+    - Ensure no two spawn regions are adjacent (use territory adjacency data to validate)
+    - Retry until valid assignment is found
+    - Spawn regions: farm_level=3, fortress_level=1, culture=PRIMAL, army_count=0
+  - Give each player a starting gold amount (suggest: 10)
+
+
+═══════════════════════════════════════════════════════
+PHASE 7: CORE GAME LOOP & TURN MANAGEMENT
+═══════════════════════════════════════════════════════
+
+Backend:
+- TurnService:
+  - POST /api/games/{id}/end-turn — player submits turn, records in turn_submission
+  - After each submission check if all non-eliminated players have submitted
+  - If all submitted, trigger turn resolution
+  - AI players auto-submit after their decisions are calculated (see Phase 15)
+- Turn timer: use a scheduled task per game that fires after timer_seconds, auto-submits for players
+  who have not yet ended their turn
+- Turn resolution order (all atomic):
+  1. Recruit armies (process ARMIES task for all regions)
+  2. Pay upkeep if current season is WINTER (see Phase 14)
+  3. Calculate rebellions (see Phase 13)
+  4. Construct buildings / culture upgrades (process BUILDING and CULTURE tasks)
+  5. Collect gold (process GOLD task)
+  6. Increase loyalty (process DIPLOMATS task and passive culture bonus)
+  7. Execute army movements in submission order, resolve battles
+  8. Advance season and turn number
+  9. Check win/draw condition (see Phase 16)
+- Build a TurnResolutionResult object containing all events that happened this turn
+  (battles, rebellions, movements, upkeep results) to send to clients
+- Broadcast TurnResolutionResult to /topic/game/{id}
+
+Frontend:
+- Subscribe to /topic/game/{id} for turn resolution events
+- Turn timer countdown display (sync with server-side timer)
+- End turn button (disabled after clicked)
+- After all players end turn, play back resolution events one by one:
+  - Show each army movement on the map
+  - Show battle outcomes
+  - Show rebellion events
+  - Players cannot skip this sequence
+
+
+═══════════════════════════════════════════════════════
+PHASE 8: REGION TASK ASSIGNMENT
+═══════════════════════════════════════════════════════
+
+Backend:
+- RegionService:
+  - PUT /api/games/{gameId}/regions/{regionId}/task — set current_task for a region
+  - Validate that the requesting player owns the region
+  - Validate that the game is IN_PROGRESS and the player has not yet ended their turn
+  - For BUILDING task also accept construction_target (FARM or FORTRESS)
+  - No confirm step — task is applied immediately
+- RegionPotentialCalculator:
+  - population = farm_level * 10000
+  - culture_score: PRIMAL=1, BASIC=1.5, INTERMEDIATE=2, ADVANCED=3
+  - region_potential = (population / 10000) * culture_score = farm_level * culture_score
+
+Frontend:
+- Clicking an owned region opens a region detail panel
+- Panel shows 5 task buttons: Produce Armies, Upgrade Culture, Construct Building, Produce Diplomats, Collect Gold
+- Construct Building sub-options: Build Farm / Build Fortress (show current levels and costs)
+- Currently active task is highlighted
+- Clicking a task immediately calls the PUT endpoint, no confirm button
+
+
+═══════════════════════════════════════════════════════
+PHASE 9: ARMY PRODUCTION & GOLD GENERATION
+═══════════════════════════════════════════════════════
+
+Backend (executed during turn resolution step 1 and 5):
+
+Army production:
+- For each region with task=ARMIES:
+  - army_production_progress += region_potential / 2
+  - While army_production_progress >= 1: army_count += 1, army_production_progress -= 1
+
+Gold production:
+- For each region with task=GOLD:
+  - gold_earned = max(1, floor(region_potential ^ 1.5))
+  - Add gold_earned to owning player's gold total
+
+
+═══════════════════════════════════════════════════════
+PHASE 10: BUILDING CONSTRUCTION & CULTURE UPGRADES
+═══════════════════════════════════════════════════════
+
+Backend (executed during turn resolution step 4):
+
+Building construction:
+- For each region with task=BUILDING:
+  - construction_progress += region_potential
+  - If construction_target=FARM:
+    - required = farm_level + 6
+    - If construction_progress >= required: farm_level += 1, construction_progress = 0, construction_target = null
+  - If construction_target=FORTRESS and fortress_level < 5:
+    - required = fortress_level * 4 + 3
+    - If construction_progress >= required: fortress_level += 1, construction_progress = 0, construction_target = null
+  - Progress is NOT reset if task changes — persists for next time BUILDING is selected
+
+Culture upgrades:
+- For each region with task=CULTURE:
+  - culture_upgrade_progress += region_potential
+  - Required points: BASIC=10, INTERMEDIATE=17, ADVANCED=28
+  - If progress >= required for next level: advance culture, reset culture_upgrade_progress
+  - Progress persists if task changes
+
+
+═══════════════════════════════════════════════════════
+PHASE 11: ARMY MOVEMENT SYSTEM
+═══════════════════════════════════════════════════════
+
+Backend:
+- MovementService:
+  - POST /api/games/{gameId}/movements — queue a movement command
+    - Validate: player owns from_region, from_region has enough armies, territories are adjacent,
+      player has not exceeded movement cap, player has not ended their turn
+    - Determine is_attack based on whether to_region is owned by a different player or is neutral
+    - Store in army_movement table with is_executed=false
+  - DELETE /api/games/{gameId}/movements/{movementId} — cancel a queued movement
+    - Only allowed before player ends their turn
+  - GET /api/games/{gameId}/movements — get current player's queued movements
+- Movement execution during turn resolution (step 7):
+  - Process movements in order they were submitted
+  - For friendly moves: transfer armies between regions
+  - For attacks: resolve combat (see Phase 12)
+
+Frontend:
+- Click an owned region to select it (highlight it and its adjacent regions)
+- Click an adjacent region to open a movement panel showing army count slider and confirm
+- Queued movements shown as arrows on the map
+- Movement counter showing X/movement_cap used
+- Cancel button on each queued movement arrow
+
+
+═══════════════════════════════════════════════════════
+PHASE 12: COMBAT SYSTEM
+═══════════════════════════════════════════════════════
+
+Backend - BattleService (called during movement execution for attack moves):
+
+Battle resolution loop:
+- attacker_armies = committed attacking army count
+- defender_armies = all armies in the defending region
+- fortress_limit = fortress_level * 5 (0 if no fortress)
+- Repeat until one side reaches 0 armies:
+  - Determine which defender armies are covered by fortress (up to fortress_limit)
+  - Uncovered defender armies roll first:
+    - Each uncovered defender rolls 1 die (0-20)
+    - Attacker rolls 1 die (0-20)
+    - Lower roll loses 1 army; on tie defender rerolls
+  - Then covered defender armies roll:
+    - Each covered defender rolls 2 dice (0-20), takes the higher result
+    - Attacker rolls 1 die (0-20)
+    - Lower roll loses 1 army; on tie defender rerolls
+- If attacker wins:
+  - to_region owner = attacker player
+  - to_region army_count = remaining attacker armies
+  - to_region loyalty = floor(loyalty / 2)
+  - Record battle in battle_record (attacker_won=true)
+- If defender wins:
+  - from_region army_count -= committed attacker armies (all lost)
+  - Record battle in battle_record (attacker_won=false)
+
+
+═══════════════════════════════════════════════════════
+PHASE 13: LOYALTY & REBELLION SYSTEM
+═══════════════════════════════════════════════════════
+
+Backend - LoyaltyService (step 6 of turn resolution):
+
+Loyalty increase (passive, applied each turn for owned regions):
+- PRIMAL: +2, BASIC: +4, INTERMEDIATE: +6, ADVANCED: +8
+- If task=DIPLOMATS: also add region_potential to loyalty
+- Cap loyalty at 100
+- Loyalty does not change for neutral regions
+
+Rebellion check (step 3 of turn resolution):
+- For each owned region with loyalty < 70:
+  - Roll dice: random int 0-69
+  - If rolled > loyalty:
+    - Spawn armies: random int 0 to farm_level (inclusive)
+    - If spawned > 0: resolve battle with player as defender using BattleService
+      - If rebels win: set owner_player_id = null (neutral), army_count = rebel survivors
+      - If player wins: rebels are removed, player keeps region
+    - If spawned = 0: log as a warning event (unhappy peasants, no combat)
+  - Record rebellion event in TurnResolutionResult for frontend display
+
+
+═══════════════════════════════════════════════════════
+PHASE 14: SEASONS & ARMY UPKEEP
+═══════════════════════════════════════════════════════
+
+Backend - SeasonService:
+
+Season order: SPRING → SUMMER → AUTUMN → WINTER → SPRING (repeats)
+Season advances at the end of each turn resolution.
+
+Winter upkeep (step 2 of turn resolution, only when current season = WINTER):
+- For each player:
+  - required_gold = sum of floor(army_count_in_region ^ 1.3) across all owned regions
+  - If player.gold >= required_gold:
+    - player.gold -= required_gold
+  - Else if player.gold < required_gold:
+    - pay_ratio = (player.gold / required_gold) * 100
+    - For each army in each region:
+      - Roll 0-100; if roll > pay_ratio: disband this army (army_count -= 1)
+    - player.gold = 0
+
+Expose upcoming winter cost:
+- GET /api/games/{gameId}/upkeep-preview — returns each player's projected winter cost
+  based on current army counts (recalculated each turn)
+
+Frontend:
+- Display current season prominently in the HUD
+- Display "Next winter cost: X gold" in the player HUD at all times
+
+
+═══════════════════════════════════════════════════════
+PHASE 15: AI PLAYER LOGIC
+═══════════════════════════════════════════════════════
+
+Backend - AiService (called during turn processing before AI player auto-submits):
+
+Attack logic:
+- On game start (or when AI needs a new target): pick a random adjacent enemy player to attack
+- Each turn, for each region bordering the target player:
+  - Sum AI armies across all adjacent regions bordering that enemy region
+  - If sum > defender army_count: queue attack from all those regions
+  - Army commitment: commit all armies only if total AI armies >= 3x defender; otherwise commit enough to match + a small buffer
+  - Skip attacking fortress regions unless AI has >= 2x defender armies
+- After 5 attack turns (ai_attack_turn_count >= 5):
+  - If only 1 enemy player remains: keep attacking them
+  - Else:
+    - If ai_regions_captured_this_cycle > 1: continue attacking same player
+    - Else if ai_regions_captured_this_cycle == 1: roll 0-100; if > 50 continue, else pick new target
+    - Else (0 captured): pick new target
+  - Reset ai_attack_turn_count and ai_regions_captured_this_cycle
+
+Development logic for non-border regions (regions not adjacent to any enemy):
+- Every 5 turns (ai_dev_roll_turn): roll 0-100
+  - If > 50: set task=ARMIES for this region
+  - Else: develop using priority list:
+    1. If loyalty < 50: task=DIPLOMATS
+    2. Else if upcoming_winter_cost > player.gold * 1.3 / 1.3: task=GOLD
+    3. Else if culture upgrade condition met (PRIMAL and farm>2, BASIC and farm>4, INTERMEDIATE and farm>8): task=CULTURE
+    4. Else if farm_level < 12: task=BUILDING (construction_target=FARM)
+    5. Else: task=ARMIES
+
+Border region logic (regions adjacent to any enemy):
+- Check battle_record for this region: if failed_attack_count >= 3 and farm_level > 4 and fortress_level == 0:
+  task=BUILDING (construction_target=FORTRESS)
+- Else: task=ARMIES
+- After producing armies in non-border regions, queue movement toward the closest border region
+  adjacent to the AI's target player (one step per turn using adjacency graph)
+
+
+═══════════════════════════════════════════════════════
+PHASE 16: GAME END CONDITIONS
+═══════════════════════════════════════════════════════
+
+Backend - GameEndService (checked after every turn resolution):
+- Count players with at least 1 owned region
+- If count == 1: transition game to ENDED, mark that player as winner
+- If count == 0: transition game to ENDED, mark as draw
+- Score calculation (store on game_player):
+  - Regions owned at end of game
+  - Total armies at end of game
+  - (Optional: turns survived)
+- Broadcast game ended event to /topic/game/{id} with final scores
+- Game record persists until all players leave the room, then delete game and all related records
+
+Frontend:
+- On receiving game ended event:
+  - Overlay score table showing all players, regions owned, result (winner/draw)
+  - Map remains interactive (click regions to view info, read-only)
+  - Leave game button returns player to lobby
+
+
+═══════════════════════════════════════════════════════
+PHASE 17: FRONTEND GAME VIEW
+═══════════════════════════════════════════════════════
+
+Map:
+- Render SVG map using path data from territories.ts
+- Color each region by owner (unique color per player, grey for neutral)
+- Display army count on each region (centroid coordinates from cx/cy)
+- Highlight selected region and its valid movement targets
+- Show queued movement arrows
+
+HUD (top bar or side panel):
+- Current player's gold
+- Upcoming winter upkeep cost
+- Current season and turn number
+- Movement commands used (X / movement_cap)
+- End turn button
+
+Region detail panel (appears on click):
+- Region name, owner, army count
+- Farm level, fortress level, culture level
+- Loyalty value with color indicator (red < 40, yellow 40-69, green 70+)
+- Region potential value
+- Current task (with task selection buttons for owned regions)
+- Construction/upgrade progress bars
+
+Spectator mode:
+- All region detail panels are read-only
+- No task selection or movement commands
+- HUD shows game info only
+
+Turn resolution playback:
+- After all players end turn, server sends ordered list of events
+- Frontend plays them back sequentially with short delays between each
+- Movements shown as animated arrows on map
+- Battle outcomes shown as a brief overlay on the contested region
+- Rebellion events shown similarly
+- Players cannot interact during playback

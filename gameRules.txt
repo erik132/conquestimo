@@ -1,0 +1,84 @@
+This is a risk type of game, but is heavily modified. These are the rules: 
+
+The world setup:
+The world is divided into territories, but we call them regions in game. The list of territories is available in ./data Also note how the territories connect to each other. Armies can only move from 1 territory to another if the 2 territories are connected. All territories start with at least level 1 farm and primal culture. About 1 third of the neutral regions start with basic culture. The regions where players spawn will have level 3 farms and level 1 fortress. Every other region is considered neutral and they will all have 1-4 neutral armies and level 1-3 farms. All regions start with a loyalty value 100.
+
+How individual regions work:
+Each turn a region can be tasked to produce armies, upgrade culture, construct a building, produce diplomats or collect taxes producing gold. Only 1 option of the 5 can be chosen. Considering that there are not many buildings, perhaps it is better to display all the options to the player and have them pick 1. There should not be a confirm button, whatever option is chosen, that will work.
+
+Culture:
+Each region can have one of the 4 culture levels:
+Primal - culture_score 1
+Basic - culture_score 1.5
+Intermediate - culture_score 2
+Advanced - culture_score 3
+
+Region Potential:
+This is a number that is used to calculate how many armies can a region produce per turn, how much gold a region can produce per turn, how fast are buildings constructed and how fast is culture upgraded. The formula is rather simple: (population / 10 000) * culture_score
+Army production per turn is calculated as (Region Potential) / 2. Meaning that less developed regions may take several turns to produce an army.
+
+Each building has a set amount of construction points. Each turn a region contributes points equal to its potential if that building is being constructed. If the region contributes points equal or greater than the required construction points the building is constructed. Only 1 building may be constructed per turn. If the player decides to have the region do something else instead of constructing the building the progress is not lost. It can be resumed later. The same principle applies for culture upgrades.
+For a level 1 farm it is 6 points. Each additional level needs 1 additional points. So the formula is: farm_construction_points = farm_level + 6.
+For a level 1 fortress it is 7 points. Each additional level needs 4 additional points. So the formula is: fortress_construction_points = fortress_level * 4 + 3.
+Culture upgrades are priced as Basic=10 points, Intermediate=17 points, Advanced=28 points. By default the primal culture requires 5 points, but because this is the minimum that is always provided, the player will never get to build it.
+Gold generation has the following formula: gold_per_turn = power(region_potential,1.5). The player is guaranteed to get at least 1 gold per turn when selecting gold production.
+
+
+Buildings:
+Farm - Each farm level gives additional 10 000 population to a region.
+Fortress - A defensive building. Has 5 levels. Each level built allows 5 additional armies to be in the fortress. The idea is when armies are defending this region, then every army that can be in the fortress gets 1 additional dice roll and the greater is chosen. The player does not have to do anything for this effect to work. If a fortress is in a region then this effect is given to a maximum amount of armies. The downside is that the armies that are not covered by the fortress roll their dice first.
+
+
+Player spawning:
+Each player starts with 1 region in the world. The regions are given randomly and the game makes sure that 2 players do not spawn adjacent to each other. We can have a maximum of 5 players in the world.
+
+Combat:
+If 1 player wants to attack another player they have to move their army from their region to another player's region. The resulting battle is resolved by having each side making dice rolls from 0-20. Which ever side rolls a lower number loses one army. In case of a draw the defender rerolls their dice. If the amount of defender armies left is equal or less than the fortress army limit, then the defender rolls 2 dice instead of 1. The greater result is chosen. This is the advantage of having a fortress. The first side to lose all their armies in the battle loses. The attacker can decide how many armies to commit to the battle, the defender always commits all armies to the fight. If the attacker wins the battle it gains ownership of the contested region and all remaining attacking armies are now stationed on that region. In this case the loyalty of the region changes based on the loyalty mechanic. If the defender wins the battle it keeps the region.
+
+Seasons and army upkeep:
+Under season we mean Winter, Spring, Summer and Autumn. Each season lasts only 1 turn. Every winter the player needs to pay salaries to their troops. The total amount required to be paid is the sum of upkeeps in all regions. The regional army upkeep is calculated as follows: regional_army_upkeep = power(amount_of_armies_in_region,1.3). If the player does not have enough gold in their treasury then armies start to leave. In order to determine how many and which armies leave we need to know the missing gold relation which is calculated as: missing_gold_relation = gold_in_player_treasury / required_gold * 100. It is a percentage. After that each army rolls a dice of 0-100. If the rolled number is greater than missing_gold_relation, the army is disbanded and removed from the game. Otherwise the army stays in the game. 
+In any case, the total amount required to be paid by the player is subtracted from the player treasury. If more gold is required than the player has, then the treasury is set to 0. The player can always see how much gold do they need to pay during the next winter.
+
+Ending a turn:
+Once a player has finished their actions they can click an end turn button. Alternatively they can wait until the turn timer runs out. By default the turn timer is set to 120 seconds, but this can be changed when the game is set up. The remaining time is displayed to the player. After the player has ended their turn either by clicking the button or having the turn timer run out, they can no longer change their decisions. Once all players have ended their turn, the game recruits armies, pays the army salaries if it is winter, calculates rebellions, constructs the buildings or cultures and then moves the armies in this order. All army movements are shown to all players one by one. The players can not skip this. Once all movements are shown, a new turn is started and all players can now make their decisions.
+
+Army movement cap:
+This is an integer that determines how many army movement commands can a player place. By default it is 5, but this can be changed when the game is set up. The player is not allowed to move more armies than this amount per turn. This counts for both attacking moves and moves between friendly territories. To make this more forgiving the player can cancel an army movement command if their turn has not yet ended.
+
+Army movement between friendly territories:
+Players are allowed to move armies between friendly territories. They can choose how many armies they wish to move.
+
+Loyalty:
+Each region has a loyalty value of 0-100. It is an integer value. By default it rises based on the region culture per turn:
+Primal - 2 point per turn.
+Basic - 4 points per turn.
+Intermediate - 6 points per turn.
+Advanced - 8 points per turn.
+If the player wants to they can assign a region to produce diplomats. In addition to the values already mentioned, the diplomat increases the region loyalty by the region_potential value. Loyalty can not be more than 100. Every time the region changes ownership the loyalty value is divided by 2. Loyalty does not rise when the region is neutral.
+
+Rebellions:
+Each turn the game finds every player region that has a loyalty value less than 70 and rolls a dice of 0-69. If the rolled number is higher than the loyalty value it spawns neutral armies. The amount of neutral armies spawned is determined by a dice roll between values 0 and the farm level in the region. A rebellion spawning 0 armies is a forgiving feature to show the players that peasants are unhappy, but today they decided not to enter combat with the player. The spawned neutral armies enter into battle with the player armies immediately as attackers and the player defends. If the neutral armies win, then the area ownership is made neutral and the player loses the area. Otherwise the player keeps the area.
+
+Ending a game:
+The game ends when there is only 1 player left who owns at least 1 territory. Should the extreme happen and there are no players left who own a territory, then the game is concluded as a draw. This situation can only happens if remaining players all suffer rebellions and lose all their regions during the same turn.
+
+AI player logic:
+AI players will pick 1 player to attack and the try to keep up the pressure for at least 5 turns. They will try to attack another player's region if they have more armies in their adjacent regions than the region they are trying to attack. That's right, an AI player can attack 1 player region from multiple regions that this AI player owns. They will usually not commit all armies to an attack unless they have at least three times as many armies as their opponent. The AI will only attack a region with a fortress if it has at least twice the amount of armies as the defender. After 5 turns the AI makes a choice, but only if it can attack more than 1 players. If it managed to capture 1 region it will roll a dice of 0-100. If it rolled more than 50 it will try to continue attacking that player, otherwise it will try to find another player to attack. If the AI player manages to take more regions than 1 during those 5 turns, it will continue attacking that player, because there is clearly an advantage.
+
+If the AI has regions which do not border another player then the AI has a choice: It can develop the region or it will build armies. After every 5 turns, the AI will roll a dice of 0-100. If the roll is greater than 50 it will produce armies, otherwise it will develop the region. There is an exception to this rule. For the first 10 turns the AI player will produce armies from its starting tile and try to capture as many neutral regions as possible. It will target the closest neutral region which has the least armies first and will attack if it has equal amount or a greater number of armies than the neutral area.
+If it is developing the region: the priorities are the following:
+1. If the loyalty of the area is lower than 50, it will produce diplomats as a priority
+2. Produce gold if the upcoming winter requires 1.3 times more gold than the AI player currently has.
+3. Culture upgrades are decided as follows:
+For Primal culture: If the region has a farm level greater than 2, then it will try to upgrade the culture.
+For Basic culture: If the region has a farm level greater than 4, then it will try to upgrade the culture.
+For Intermediate culture: If the region has a farm level greater than 8, then it will try to upgrade the culture.
+4. It will try to build more farms on those regions if the farm level is less than 12.
+5. If none of the 4 points above will be chosen, then the AI will just produce troops.
+
+If the region borders an opponent's region:
+1. If the region is next to a player who has attacked this region, but failed, then the AI player will try to build a fortress here if the amount of farms is greater than 4. This option will trigger if there has been 3 attempts to take this region or more. The game keeps track of all battles that have happened during this gameplay. These records are deleted when the game is deleted.
+2. Train armies.
+If the AI player trains armies in regions that do not border another player then it will try to move those armies closer to the player that the AI player is trying to attack. In this case it is targeting the region that is closest to the region where it trained the armies.
+
+Once the AI player has made its decisions it will end its turn.

@@ -1,0 +1,366 @@
+export interface TerritoryData {
+  id: string;
+  name: string;
+  continent: string;
+  adjacencies: string[];
+  path: string;
+  cx: number; // centroid x
+  cy: number; // centroid y
+}
+
+// Map viewBox: 0 0 1000 600
+// Stylized Risk map with simplified territory shapes
+export const territories: TerritoryData[] = [
+  // ─── NORTH AMERICA ───
+  {
+    id: 'alaska',
+    name: 'Alaska',
+    continent: 'north-america',
+    adjacencies: ['northwest-territory', 'alberta', 'kamchatka'],
+    path: 'M 45,55 L 80,45 L 110,55 L 115,75 L 100,95 L 70,100 L 40,90 Z',
+    cx: 78, cy: 72,
+  },
+  {
+    id: 'northwest-territory',
+    name: 'NW Territory',
+    continent: 'north-america',
+    adjacencies: ['alaska', 'alberta', 'ontario', 'greenland'],
+    path: 'M 110,55 L 160,40 L 210,42 L 230,55 L 220,80 L 170,85 L 115,75 Z',
+    cx: 170, cy: 62,
+  },
+  {
+    id: 'greenland',
+    name: 'Greenland',
+    continent: 'north-america',
+    adjacencies: ['northwest-territory', 'ontario', 'quebec', 'iceland'],
+    path: 'M 270,18 L 310,10 L 350,15 L 360,45 L 340,70 L 300,75 L 265,60 L 255,35 Z',
+    cx: 310, cy: 42,
+  },
+  {
+    id: 'alberta',
+    name: 'Alberta',
+    continent: 'north-america',
+    adjacencies: ['alaska', 'northwest-territory', 'ontario', 'western-us'],
+    path: 'M 100,95 L 115,75 L 170,85 L 170,120 L 140,130 L 105,125 Z',
+    cx: 135, cy: 105,
+  },
+  {
+    id: 'ontario',
+    name: 'Ontario',
+    continent: 'north-america',
+    adjacencies: ['alberta', 'northwest-territory', 'greenland', 'quebec', 'western-us', 'eastern-us'],
+    path: 'M 170,85 L 220,80 L 250,90 L 245,120 L 220,135 L 190,130 L 170,120 Z',
+    cx: 210, cy: 108,
+  },
+  {
+    id: 'quebec',
+    name: 'Quebec',
+    continent: 'north-america',
+    adjacencies: ['ontario', 'greenland', 'eastern-us'],
+    path: 'M 250,90 L 265,60 L 300,75 L 295,100 L 275,120 L 245,120 Z',
+    cx: 272, cy: 95,
+  },
+  {
+    id: 'western-us',
+    name: 'Western US',
+    continent: 'north-america',
+    adjacencies: ['alberta', 'ontario', 'eastern-us', 'central-america'],
+    path: 'M 80,130 L 105,125 L 140,130 L 170,120 L 190,130 L 185,165 L 150,180 L 100,175 L 75,155 Z',
+    cx: 132, cy: 152,
+  },
+  {
+    id: 'eastern-us',
+    name: 'Eastern US',
+    continent: 'north-america',
+    adjacencies: ['western-us', 'ontario', 'quebec', 'central-america'],
+    path: 'M 190,130 L 220,135 L 245,120 L 275,120 L 270,155 L 240,180 L 200,190 L 185,165 Z',
+    cx: 228, cy: 155,
+  },
+  {
+    id: 'central-america',
+    name: 'Central America',
+    continent: 'north-america',
+    adjacencies: ['western-us', 'eastern-us', 'venezuela'],
+    path: 'M 100,175 L 150,180 L 185,165 L 200,190 L 190,215 L 170,235 L 140,230 L 115,210 L 95,195 Z',
+    cx: 150, cy: 205,
+  },
+
+  // ─── SOUTH AMERICA ───
+  {
+    id: 'venezuela',
+    name: 'Venezuela',
+    continent: 'south-america',
+    adjacencies: ['central-america', 'peru', 'brazil'],
+    path: 'M 170,235 L 190,215 L 225,225 L 260,230 L 265,255 L 230,265 L 195,260 Z',
+    cx: 220, cy: 245,
+  },
+  {
+    id: 'peru',
+    name: 'Peru',
+    continent: 'south-america',
+    adjacencies: ['venezuela', 'brazil', 'argentina'],
+    path: 'M 170,260 L 195,260 L 230,265 L 225,300 L 215,335 L 190,340 L 175,315 L 165,285 Z',
+    cx: 198, cy: 300,
+  },
+  {
+    id: 'brazil',
+    name: 'Brazil',
+    continent: 'south-america',
+    adjacencies: ['venezuela', 'peru', 'argentina', 'north-africa'],
+    path: 'M 230,265 L 265,255 L 290,270 L 300,300 L 285,340 L 255,355 L 225,345 L 215,335 L 225,300 Z',
+    cx: 258, cy: 305,
+  },
+  {
+    id: 'argentina',
+    name: 'Argentina',
+    continent: 'south-america',
+    adjacencies: ['peru', 'brazil'],
+    path: 'M 190,340 L 215,335 L 225,345 L 255,355 L 245,390 L 230,430 L 210,450 L 195,430 L 185,395 L 180,365 Z',
+    cx: 215, cy: 390,
+  },
+
+  // ─── EUROPE ───
+  {
+    id: 'iceland',
+    name: 'Iceland',
+    continent: 'europe',
+    adjacencies: ['greenland', 'scandinavia', 'great-britain'],
+    path: 'M 380,52 L 410,48 L 430,55 L 425,72 L 400,78 L 380,70 Z',
+    cx: 405, cy: 63,
+  },
+  {
+    id: 'scandinavia',
+    name: 'Scandinavia',
+    continent: 'europe',
+    adjacencies: ['iceland', 'ukraine', 'northern-europe', 'great-britain'],
+    path: 'M 460,40 L 490,30 L 510,42 L 520,70 L 510,100 L 485,110 L 465,95 L 455,65 Z',
+    cx: 487, cy: 72,
+  },
+  {
+    id: 'great-britain',
+    name: 'Great Britain',
+    continent: 'europe',
+    adjacencies: ['iceland', 'scandinavia', 'northern-europe', 'western-europe'],
+    path: 'M 400,90 L 420,82 L 440,88 L 445,110 L 435,128 L 415,130 L 400,118 Z',
+    cx: 422, cy: 108,
+  },
+  {
+    id: 'northern-europe',
+    name: 'N. Europe',
+    continent: 'europe',
+    adjacencies: ['great-britain', 'scandinavia', 'ukraine', 'western-europe', 'southern-europe'],
+    path: 'M 445,110 L 465,95 L 485,110 L 520,115 L 515,140 L 490,148 L 460,145 L 445,135 Z',
+    cx: 480, cy: 127,
+  },
+  {
+    id: 'western-europe',
+    name: 'W. Europe',
+    continent: 'europe',
+    adjacencies: ['great-britain', 'northern-europe', 'southern-europe', 'north-africa'],
+    path: 'M 400,130 L 415,130 L 435,128 L 445,135 L 460,145 L 455,175 L 435,190 L 410,185 L 395,165 Z',
+    cx: 430, cy: 160,
+  },
+  {
+    id: 'southern-europe',
+    name: 'S. Europe',
+    continent: 'europe',
+    adjacencies: ['western-europe', 'northern-europe', 'ukraine', 'north-africa', 'egypt', 'middle-east'],
+    path: 'M 460,145 L 490,148 L 515,140 L 540,155 L 535,180 L 510,195 L 480,192 L 455,175 Z',
+    cx: 495, cy: 168,
+  },
+  {
+    id: 'ukraine',
+    name: 'Ukraine',
+    continent: 'europe',
+    adjacencies: ['scandinavia', 'northern-europe', 'southern-europe', 'ural', 'afghanistan', 'middle-east'],
+    path: 'M 520,70 L 560,55 L 600,65 L 610,95 L 605,130 L 580,155 L 540,155 L 515,140 L 520,115 L 510,100 Z',
+    cx: 562, cy: 108,
+  },
+
+  // ─── AFRICA ───
+  {
+    id: 'north-africa',
+    name: 'N. Africa',
+    continent: 'africa',
+    adjacencies: ['brazil', 'western-europe', 'southern-europe', 'egypt', 'east-africa', 'congo'],
+    path: 'M 385,210 L 420,200 L 460,200 L 500,210 L 510,240 L 500,270 L 465,280 L 420,280 L 390,265 L 380,235 Z',
+    cx: 445, cy: 240,
+  },
+  {
+    id: 'egypt',
+    name: 'Egypt',
+    continent: 'africa',
+    adjacencies: ['north-africa', 'southern-europe', 'middle-east', 'east-africa'],
+    path: 'M 500,210 L 535,200 L 560,210 L 555,240 L 540,260 L 510,240 Z',
+    cx: 530, cy: 228,
+  },
+  {
+    id: 'east-africa',
+    name: 'E. Africa',
+    continent: 'africa',
+    adjacencies: ['north-africa', 'egypt', 'middle-east', 'congo', 'south-africa', 'madagascar'],
+    path: 'M 510,240 L 540,260 L 555,240 L 570,260 L 565,300 L 545,335 L 520,340 L 500,320 L 500,270 Z',
+    cx: 530, cy: 290,
+  },
+  {
+    id: 'congo',
+    name: 'Congo',
+    continent: 'africa',
+    adjacencies: ['north-africa', 'east-africa', 'south-africa'],
+    path: 'M 420,280 L 465,280 L 500,270 L 500,320 L 490,350 L 460,355 L 435,340 L 425,310 Z',
+    cx: 460, cy: 315,
+  },
+  {
+    id: 'south-africa',
+    name: 'S. Africa',
+    continent: 'africa',
+    adjacencies: ['congo', 'east-africa', 'madagascar'],
+    path: 'M 435,340 L 460,355 L 490,350 L 520,340 L 530,370 L 520,410 L 495,430 L 465,425 L 445,400 L 430,370 Z',
+    cx: 478, cy: 385,
+  },
+  {
+    id: 'madagascar',
+    name: 'Madagascar',
+    continent: 'africa',
+    adjacencies: ['south-africa', 'east-africa'],
+    path: 'M 555,365 L 570,355 L 582,370 L 580,405 L 565,420 L 550,405 L 548,380 Z',
+    cx: 565, cy: 388,
+  },
+
+  // ─── ASIA ───
+  {
+    id: 'ural',
+    name: 'Ural',
+    continent: 'asia',
+    adjacencies: ['ukraine', 'siberia', 'afghanistan', 'china'],
+    path: 'M 610,95 L 600,65 L 630,50 L 665,45 L 675,70 L 670,100 L 650,120 L 625,125 L 605,130 Z',
+    cx: 640, cy: 87,
+  },
+  {
+    id: 'siberia',
+    name: 'Siberia',
+    continent: 'asia',
+    adjacencies: ['ural', 'yakutsk', 'irkutsk', 'mongolia', 'china'],
+    path: 'M 675,70 L 665,45 L 695,30 L 740,25 L 755,45 L 750,75 L 730,95 L 700,100 L 670,100 Z',
+    cx: 715, cy: 62,
+  },
+  {
+    id: 'yakutsk',
+    name: 'Yakutsk',
+    continent: 'asia',
+    adjacencies: ['siberia', 'kamchatka', 'irkutsk'],
+    path: 'M 755,45 L 740,25 L 775,15 L 820,18 L 840,35 L 830,60 L 800,70 L 770,65 Z',
+    cx: 795, cy: 42,
+  },
+  {
+    id: 'kamchatka',
+    name: 'Kamchatka',
+    continent: 'asia',
+    adjacencies: ['yakutsk', 'irkutsk', 'mongolia', 'japan', 'alaska'],
+    path: 'M 840,35 L 820,18 L 860,10 L 910,15 L 940,35 L 935,60 L 905,75 L 870,70 L 845,60 Z',
+    cx: 890, cy: 42,
+  },
+  {
+    id: 'irkutsk',
+    name: 'Irkutsk',
+    continent: 'asia',
+    adjacencies: ['siberia', 'yakutsk', 'kamchatka', 'mongolia'],
+    path: 'M 750,75 L 770,65 L 800,70 L 830,60 L 845,60 L 840,90 L 810,105 L 775,105 L 750,95 Z',
+    cx: 795, cy: 82,
+  },
+  {
+    id: 'mongolia',
+    name: 'Mongolia',
+    continent: 'asia',
+    adjacencies: ['siberia', 'irkutsk', 'kamchatka', 'japan', 'china'],
+    path: 'M 750,95 L 775,105 L 810,105 L 840,90 L 870,70 L 895,90 L 880,120 L 845,135 L 800,135 L 760,125 L 735,115 Z',
+    cx: 810, cy: 110,
+  },
+  {
+    id: 'japan',
+    name: 'Japan',
+    continent: 'asia',
+    adjacencies: ['kamchatka', 'mongolia'],
+    path: 'M 910,90 L 930,80 L 945,95 L 940,125 L 925,140 L 910,130 L 905,105 Z',
+    cx: 925, cy: 110,
+  },
+  {
+    id: 'afghanistan',
+    name: 'Afghanistan',
+    continent: 'asia',
+    adjacencies: ['ukraine', 'ural', 'china', 'india', 'middle-east'],
+    path: 'M 605,130 L 625,125 L 650,120 L 670,100 L 700,100 L 700,135 L 680,160 L 650,170 L 620,165 L 580,155 Z',
+    cx: 645, cy: 142,
+  },
+  {
+    id: 'china',
+    name: 'China',
+    continent: 'asia',
+    adjacencies: ['afghanistan', 'ural', 'siberia', 'mongolia', 'india', 'siam'],
+    path: 'M 700,100 L 730,95 L 735,115 L 760,125 L 800,135 L 810,160 L 790,180 L 755,185 L 720,180 L 700,170 L 680,160 L 700,135 Z',
+    cx: 745, cy: 150,
+  },
+  {
+    id: 'india',
+    name: 'India',
+    continent: 'asia',
+    adjacencies: ['afghanistan', 'china', 'siam', 'middle-east'],
+    path: 'M 620,165 L 650,170 L 680,160 L 700,170 L 720,180 L 720,210 L 700,240 L 670,250 L 645,235 L 630,210 L 615,190 Z',
+    cx: 670, cy: 205,
+  },
+  {
+    id: 'siam',
+    name: 'Siam',
+    continent: 'asia',
+    adjacencies: ['india', 'china', 'indonesia'],
+    path: 'M 720,180 L 755,185 L 790,180 L 795,210 L 780,240 L 755,250 L 735,240 L 720,210 Z',
+    cx: 755, cy: 215,
+  },
+  {
+    id: 'middle-east',
+    name: 'Middle East',
+    continent: 'asia',
+    adjacencies: ['ukraine', 'southern-europe', 'egypt', 'east-africa', 'afghanistan', 'india'],
+    path: 'M 535,180 L 580,155 L 620,165 L 615,190 L 600,215 L 575,225 L 555,240 L 560,210 Z',
+    cx: 580, cy: 200,
+  },
+
+  // ─── AUSTRALIA ───
+  {
+    id: 'indonesia',
+    name: 'Indonesia',
+    continent: 'australia',
+    adjacencies: ['siam', 'new-guinea', 'western-australia'],
+    path: 'M 740,280 L 770,270 L 800,275 L 810,295 L 790,310 L 760,315 L 735,305 Z',
+    cx: 772, cy: 292,
+  },
+  {
+    id: 'new-guinea',
+    name: 'New Guinea',
+    continent: 'australia',
+    adjacencies: ['indonesia', 'eastern-australia', 'western-australia'],
+    path: 'M 840,280 L 875,270 L 910,278 L 915,300 L 895,315 L 860,318 L 835,305 Z',
+    cx: 875, cy: 295,
+  },
+  {
+    id: 'western-australia',
+    name: 'W. Australia',
+    continent: 'australia',
+    adjacencies: ['indonesia', 'new-guinea', 'eastern-australia'],
+    path: 'M 770,340 L 805,330 L 830,340 L 835,375 L 825,410 L 800,420 L 775,410 L 760,385 L 762,355 Z',
+    cx: 798, cy: 375,
+  },
+  {
+    id: 'eastern-australia',
+    name: 'E. Australia',
+    continent: 'australia',
+    adjacencies: ['new-guinea', 'western-australia'],
+    path: 'M 835,340 L 860,318 L 895,330 L 920,355 L 920,395 L 900,425 L 870,430 L 845,415 L 835,380 Z',
+    cx: 878, cy: 378,
+  },
+];
+
+export const territoryMap = new Map<string, TerritoryData>();
+for (const t of territories) {
+  territoryMap.set(t.id, t);
+}
