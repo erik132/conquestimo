@@ -56,7 +56,8 @@ Primal - 2 point per turn.
 Basic - 4 points per turn.
 Intermediate - 6 points per turn.
 Advanced - 8 points per turn.
-If the player wants to they can assign a region to produce diplomats. In addition to the values already mentioned, the diplomat increases the region loyalty by the region_potential value. Loyalty can not be more than 100. Every time the region changes ownership the loyalty value is divided by 2. Loyalty does not rise when the region is neutral.
+If the region is neutral, the value will only rise if it is less than 50 points.
+If the player wants to they can assign a region to produce diplomats. In addition to the values already mentioned, the diplomat increases the region loyalty by the region_potential value. Loyalty can not be more than 100. Every time the region changes ownership the loyalty value is divided by 2.
 Upgrading culture gives 30 loyalty points to the region.
 
 Rebellions:

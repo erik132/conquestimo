@@ -22,7 +22,12 @@ public class LoyaltyService {
 
     public void applyLoyaltyGrowth(List<GameRegion> regions) {
         for (GameRegion region : regions) {
-            if (region.getOwner() == null) continue;
+            if (region.getOwner() == null) {
+                if (region.getLoyalty() < 50) {
+                    region.setLoyalty(region.getLoyalty() + region.getCulture().getLoyaltyPerTurn());
+                }
+                continue;
+            }
             int increase = region.getCulture().getLoyaltyPerTurn();
             if (region.getCurrentTask() == RegionTask.DIPLOMATS) {
                 increase += (int) Math.floor(potentialCalculator.calculate(region));
