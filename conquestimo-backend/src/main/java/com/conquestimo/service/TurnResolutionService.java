@@ -224,6 +224,7 @@ public class TurnResolutionService {
                     region.setCulture(upgraded);
                     region.setCultureUpgradeProgress(0);
                     region.setCurrentTask(RegionTask.NONE);
+                    region.setLoyalty(region.getLoyalty() + 30);
                     events.add(TurnEventDto.cultureUpgraded(region.getTerritoryId(), region.getId(), upgraded.name()));
                 }
             }
@@ -290,6 +291,7 @@ public class TurnResolutionService {
                     int survivors = armies - result.attackerArmiesLost();
                     to.setOwner(attackingPlayer);
                     to.setArmyCount(Math.max(0, survivors));
+                    to.setCurrentTask(RegionTask.ARMIES);
                     loyaltyService.halveOnCapture(to);
 
                     // Track captured regions for AI cycle

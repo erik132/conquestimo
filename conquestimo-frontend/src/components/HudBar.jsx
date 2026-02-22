@@ -40,10 +40,11 @@ export default function HudBar({ game, myPlayer, gameId, turnSubmitted, onTurnSu
   const handleEndTurn = async () => {
     setEnding(true)
     setError('')
+    onTurnSubmitted(true)
     try {
       await endTurn(gameId)
-      onTurnSubmitted()
     } catch (e) {
+      onTurnSubmitted(false)
       setError(e.response?.data?.message || e.message || 'Failed to end turn')
     } finally {
       setEnding(false)

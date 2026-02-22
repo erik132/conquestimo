@@ -1,10 +1,12 @@
 This is a risk type of game, but is heavily modified. These are the rules: 
 
 The world setup:
-The world is divided into territories, but we call them regions in game. The list of territories is available in ./data Also note how the territories connect to each other. Armies can only move from 1 territory to another if the 2 territories are connected. All territories start with at least level 1 farm and primal culture. About 1 third of the neutral regions start with basic culture. The regions where players spawn will have level 3 farms and level 1 fortress. Every other region is considered neutral and they will all have 1-4 neutral armies and level 1-3 farms. All regions start with a loyalty value 100.
+The world is divided into territories, but we call them regions in game. The list of territories is available in ./data Also note how the territories connect to each other. Armies can only move from 1 territory to another if the 2 territories are connected. All territories start with at least level 1 farm and primal culture. About 1 third of the neutral regions start with basic culture. The regions where players spawn will have level 3 farms, basic culture and level 1 fortress. Every other region is considered neutral and they will all have 1-4 neutral armies and level 1-3 farms. All regions start with a loyalty value 100.
 
 How individual regions work:
 Each turn a region can be tasked to produce armies, upgrade culture, construct a building, produce diplomats or collect taxes producing gold. Only 1 option of the 5 can be chosen. Considering that there are not many buildings, perhaps it is better to display all the options to the player and have them pick 1. There should not be a confirm button, whatever option is chosen, that will work.
+
+By default all player regions are set to train armies. Neutral regions do not do anything during their turn.
 
 Culture:
 Each region can have one of the 4 culture levels:
@@ -55,6 +57,7 @@ Basic - 4 points per turn.
 Intermediate - 6 points per turn.
 Advanced - 8 points per turn.
 If the player wants to they can assign a region to produce diplomats. In addition to the values already mentioned, the diplomat increases the region loyalty by the region_potential value. Loyalty can not be more than 100. Every time the region changes ownership the loyalty value is divided by 2. Loyalty does not rise when the region is neutral.
+Upgrading culture gives 30 loyalty points to the region.
 
 Rebellions:
 Each turn the game finds every player region that has a loyalty value less than 70 and rolls a dice of 0-69. If the rolled number is higher than the loyalty value it spawns neutral armies. The amount of neutral armies spawned is determined by a dice roll between values 0 and the farm level in the region. A rebellion spawning 0 armies is a forgiving feature to show the players that peasants are unhappy, but today they decided not to enter combat with the player. The spawned neutral armies enter into battle with the player armies immediately as attackers and the player defends. If the neutral armies win, then the area ownership is made neutral and the player loses the area. Otherwise the player keeps the area.

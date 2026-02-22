@@ -61,9 +61,10 @@ public class GameInitializationService {
             spawnRegion.setOwner(player);
             spawnRegion.setFarmLevel(3);
             spawnRegion.setFortressLevel(1);
-            spawnRegion.setCulture(Culture.PRIMAL);
+            spawnRegion.setCulture(Culture.BASIC);
             spawnRegion.setLoyalty(100);
             spawnRegion.setArmyCount(0);
+            spawnRegion.setCurrentTask(RegionTask.ARMIES);
         }
 
         // Set up neutral regions

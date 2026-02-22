@@ -129,7 +129,7 @@ export default function GamePage() {
         myPlayer={myPlayer}
         gameId={gameId}
         turnSubmitted={turnSubmitted}
-        onTurnSubmitted={() => setTurnSubmitted(true)}
+        onTurnSubmitted={(val) => setTurnSubmitted(val)}
         players={players}
       />
 
