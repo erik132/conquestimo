@@ -65,6 +65,7 @@ public class AiService {
         // Attack logic
         int movesUsed = 0;
         movesUsed += executeAttacks(game, aiPlayer, target, allRegions, myRegions, movesUsed);
+        movesUsed += executeNeutralOpportunism(game, aiPlayer, allRegions, myRegions, movesUsed);
 
         // Assign tasks to regions
         for (GameRegion region : myRegions) {
@@ -244,6 +245,33 @@ public class AiService {
                 int toCommit = allIn ? attackFrom.getArmyCount() : Math.max(1, attackFrom.getArmyCount() / 2);
 
                 queueMovement(game, aiPlayer, attackFrom, targetRegion, toCommit);
+                moves++;
+            }
+        }
+        return moves;
+    }
+
+    private int executeNeutralOpportunism(Game game, GamePlayer aiPlayer,
+                                           List<GameRegion> allRegions, List<GameRegion> myRegions, int movesUsed) {
+        int moves = 0;
+        for (GameRegion region : myRegions) {
+            if (movesUsed + moves >= game.getMovementCap()) break;
+            if (region.getArmyCount() < 2) continue;
+
+            List<GameRegion> weakNeutrals = allRegions.stream()
+                    .filter(r -> r.getOwner() == null)
+                    .filter(r -> territoryLoader.areAdjacent(region.getTerritoryId(), r.getTerritoryId()))
+                    .filter(r -> region.getArmyCount() >= r.getArmyCount() * 4)
+                    .collect(Collectors.toList());
+
+            int committed = 0;
+            for (GameRegion neutral : weakNeutrals) {
+                if (movesUsed + moves >= game.getMovementCap()) break;
+                int available = region.getArmyCount() - 1 - committed;
+                if (available <= 0) break;
+                int toCommit = Math.min(Math.max(1, region.getArmyCount() / 2), available);
+                queueMovement(game, aiPlayer, region, neutral, toCommit);
+                committed += toCommit;
                 moves++;
             }
         }
