@@ -13,6 +13,6 @@ WebSockets are used for real-time communication between the server and clients. 
 
 Each game can have 3 states:
 Lobby - The game has now yet started, but players can join. Once the game creator presses the start button the game is in progress and the first turn starts. All player slots that are not filled by human players are filled with AI players.
-In-progress - The game is in progress. If a player joins in this state they can either spectate or take over an AI player.
+In-progress - The game is in progress. If a player joins in this state they can either spectate or take over an AI player. If the player chooses to spectate they can see a read only view of the entire map, but can not change anything or place orders. Any player can spectate. If a player joins the game as a player instead of a spectator, then they can take over an AI player and start playing as them. If a player joins a game where they previously played, but were disconnected for some reason, then they get their old slot back.
 Ended - The game has ended. No players can make any decisions, but everyone can click on regions and view their information. A score table is shown. This state is maintained until there is at least 1 player left in the room.
 

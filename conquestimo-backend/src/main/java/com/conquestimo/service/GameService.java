@@ -54,7 +54,8 @@ public class GameService {
                         game.getState(),
                         gamePlayerRepository.countByGameId(game.getId()),
                         game.getMaxPlayers(),
-                        game.getPasswordHash() != null
+                        game.getPasswordHash() != null,
+                        gamePlayerRepository.countByGameIdAndAiTrueAndEliminatedFalse(game.getId())
                 ))
                 .collect(Collectors.toList());
     }
@@ -97,16 +98,64 @@ public class GameService {
         AppUser user = findUser(username);
         Game game = findGame(gameId);
 
-        if (game.getState() != GameState.LOBBY) {
-            throw new IllegalStateException("Game is not in lobby state");
+        if (game.getState() == GameState.ENDED) {
+            throw new IllegalStateException("Game has ended");
         }
-        if (gamePlayerRepository.existsByGameIdAndUserId(gameId, user.getId())) {
-            throw new IllegalStateException("Already in this game");
+
+        if (game.getState() == GameState.LOBBY) {
+            if (gamePlayerRepository.existsByGameIdAndUserId(gameId, user.getId())) {
+                throw new IllegalStateException("Already in this game");
+            }
+            int currentCount = gamePlayerRepository.countByGameId(gameId);
+            if (currentCount >= game.getMaxPlayers()) {
+                throw new IllegalStateException("Game is full");
+            }
+            if (game.getPasswordHash() != null) {
+                String provided = request.getPassword();
+                if (provided == null || !passwordEncoder.matches(provided, game.getPasswordHash())) {
+                    throw new IllegalArgumentException("Incorrect password");
+                }
+            }
+
+            String color = assignColor(gameId);
+            GamePlayer player = new GamePlayer();
+            player.setGame(game);
+            player.setUser(user);
+            player.setColor(color);
+            gamePlayerRepository.save(player);
+
+            GameDetailDto detail = toDetailDto(game);
+            broadcastLobbyUpdate();
+            broadcastGameUpdate(gameId, detail);
+            return detail;
         }
-        int currentCount = gamePlayerRepository.countByGameId(gameId);
-        if (currentCount >= game.getMaxPlayers()) {
-            throw new IllegalStateException("Game is full");
+
+        // IN_PROGRESS path
+        java.util.Optional<GamePlayer> existing = gamePlayerRepository.findByGameIdAndUserUsername(gameId, username);
+
+        if (existing.isPresent()) {
+            // RECONNECT CASE
+            GamePlayer player = existing.get();
+            if (!player.isAi()) {
+                // Already a human player — just return current state
+                return toDetailDto(game);
+            }
+            // Slot was converted to AI; restore original owner
+            player.setAi(false);
+            player.setAiName(null);
+            player.setAiTargetPlayerId(null);
+            player.setAiAttackTurnCount(0);
+            player.setAiRegionsCapturedThisCycle(0);
+            player.setAiDevRollTurn(0);
+            gamePlayerRepository.save(player);
+
+            GameDetailDto detail = toDetailDto(game);
+            broadcastLobbyUpdate();
+            broadcastGameUpdate(gameId, detail);
+            return detail;
         }
+
+        // NEW PLAYER TAKEOVER
         if (game.getPasswordHash() != null) {
             String provided = request.getPassword();
             if (provided == null || !passwordEncoder.matches(provided, game.getPasswordHash())) {
@@ -114,12 +163,20 @@ public class GameService {
             }
         }
 
-        String color = assignColor(gameId);
-        GamePlayer player = new GamePlayer();
-        player.setGame(game);
-        player.setUser(user);
-        player.setColor(color);
-        gamePlayerRepository.save(player);
+        java.util.List<GamePlayer> aiPlayers = gamePlayerRepository.findByGameIdAndAiTrueAndEliminatedFalse(gameId);
+        if (aiPlayers.isEmpty()) {
+            throw new IllegalStateException("No AI players available to take over");
+        }
+
+        GamePlayer target = aiPlayers.get(0);
+        target.setAi(false);
+        target.setUser(user);
+        target.setAiName(null);
+        target.setAiTargetPlayerId(null);
+        target.setAiAttackTurnCount(0);
+        target.setAiRegionsCapturedThisCycle(0);
+        target.setAiDevRollTurn(0);
+        gamePlayerRepository.save(target);
 
         GameDetailDto detail = toDetailDto(game);
         broadcastLobbyUpdate();

@@ -48,17 +48,25 @@ export default function LobbyPage() {
     }
   }
 
-  async function handlePasswordSubmit(e) {
-    e.preventDefault();
-    await doJoin(passwordPrompt.game.id, passwordPrompt.password);
+  async function handleJoinInProgress(game) {
+    if (game.hasPassword) {
+      setPasswordPrompt({ game, password: '', inProgress: true });
+    } else {
+      await doJoin(game.id, '', true);
+    }
   }
 
-  async function doJoin(gameId, password) {
+  async function handlePasswordSubmit(e) {
+    e.preventDefault();
+    await doJoin(passwordPrompt.game.id, passwordPrompt.password, passwordPrompt.inProgress);
+  }
+
+  async function doJoin(gameId, password, inProgress = false) {
     setError('');
     try {
       await joinGame(gameId, { password });
       setPasswordPrompt(null);
-      navigate(`/game-lobby/${gameId}`);
+      navigate(inProgress ? `/game/${gameId}` : `/game-lobby/${gameId}`);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to join game');
     }
@@ -109,6 +117,11 @@ export default function LobbyPage() {
               <td>
                 {game.state === 'LOBBY' && game.playerCount < game.maxPlayers && (
                   <button onClick={() => handleJoin(game)} className="btn-primary btn-sm">
+                    Join
+                  </button>
+                )}
+                {game.state === 'IN_PROGRESS' && game.availableAiCount > 0 && (
+                  <button onClick={() => handleJoinInProgress(game)} className="btn-primary btn-sm">
                     Join
                   </button>
                 )}

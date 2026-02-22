@@ -9,14 +9,16 @@ public class GameSummaryDto {
     private int playerCount;
     private int maxPlayers;
     private boolean hasPassword;
+    private int availableAiCount;
 
-    public GameSummaryDto(Long id, String name, GameState state, int playerCount, int maxPlayers, boolean hasPassword) {
+    public GameSummaryDto(Long id, String name, GameState state, int playerCount, int maxPlayers, boolean hasPassword, int availableAiCount) {
         this.id = id;
         this.name = name;
         this.state = state;
         this.playerCount = playerCount;
         this.maxPlayers = maxPlayers;
         this.hasPassword = hasPassword;
+        this.availableAiCount = availableAiCount;
     }
 
     public Long getId() { return id; }
@@ -25,4 +27,5 @@ public class GameSummaryDto {
     public int getPlayerCount() { return playerCount; }
     public int getMaxPlayers() { return maxPlayers; }
     public boolean isHasPassword() { return hasPassword; }
+    public int getAvailableAiCount() { return availableAiCount; }
 }

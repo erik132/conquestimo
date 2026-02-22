@@ -12,4 +12,6 @@ public interface GamePlayerRepository extends JpaRepository<GamePlayer, Long> {
     Optional<GamePlayer> findByGameIdAndUserUsername(Long gameId, String username);
     boolean existsByGameIdAndUserId(Long gameId, Long userId);
     int countByGameId(Long gameId);
+    List<GamePlayer> findByGameIdAndAiTrueAndEliminatedFalse(Long gameId);
+    int countByGameIdAndAiTrueAndEliminatedFalse(Long gameId);
 }
