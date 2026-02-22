@@ -15,6 +15,62 @@ const CONSTRUCTION_TARGETS = [
   { value: 'FORTRESS', label: 'Fortress' },
 ]
 
+const CULTURE_UPGRADE_COST = { PRIMAL: 10, BASIC: 17, INTERMEDIATE: 28, ADVANCED: null }
+const CULTURE_LOYALTY_PER_TURN = { PRIMAL: 2, BASIC: 4, INTERMEDIATE: 6, ADVANCED: 8 }
+
+function getTaskDetail(region) {
+  if (!region) return null
+  const task = region.currentTask
+  const potential = region.regionPotential || 0
+
+  if (task === 'GOLD') {
+    const gold = Math.max(1, Math.floor(Math.pow(potential, 1.5)))
+    return `${gold} gold/turn`
+  }
+
+  if (task === 'ARMIES') {
+    const rate = potential / 2
+    if (rate <= 0) return null
+    if (rate >= 1) {
+      return `${rate.toFixed(2)} armies/turn`
+    }
+    const progress = region.armyProductionProgress || 0
+    const remaining = 1 - progress
+    const turnsLeft = Math.ceil(remaining / rate)
+    return `~${turnsLeft} turn${turnsLeft !== 1 ? 's' : ''} until next army`
+  }
+
+  if (task === 'CULTURE') {
+    const cost = CULTURE_UPGRADE_COST[region.culture]
+    if (!cost) return 'Already max level'
+    const progress = region.cultureUpgradeProgress || 0
+    const pct = Math.min(100, Math.round((progress / cost) * 100))
+    return `${progress.toFixed(1)} / ${cost} pts (${pct}%)`
+  }
+
+  if (task === 'BUILDING') {
+    let cost = null
+    if (region.constructionTarget === 'FARM') {
+      cost = region.farmLevel + 6
+    } else if (region.constructionTarget === 'FORTRESS') {
+      cost = region.fortressLevel * 4 + 3
+    }
+    if (!cost) return null
+    const progress = region.constructionProgress || 0
+    const pct = Math.min(100, Math.round((progress / cost) * 100))
+    return `${progress.toFixed(1)} / ${cost} pts (${pct}%)`
+  }
+
+  if (task === 'DIPLOMATS') {
+    const baseLoyalty = CULTURE_LOYALTY_PER_TURN[region.culture] || 0
+    const diplomatBonus = Math.floor(potential)
+    const total = baseLoyalty + diplomatBonus
+    return `+${total} loyalty/turn (base ${baseLoyalty} + ${diplomatBonus} diplomat)`
+  }
+
+  return null
+}
+
 export default function RegionPanel({
   region,
   gameId,
@@ -42,6 +98,7 @@ export default function RegionPanel({
   const isOwned = region.ownerPlayerId === myPlayerId
   const isNeutral = !region.ownerPlayerId
   const tInfo = TERRITORY_MAP[region.territoryId]
+  const taskDetail = getTaskDetail(region)
 
   const handleSetTask = async (task) => {
     setError('')
@@ -72,7 +129,6 @@ export default function RegionPanel({
     }
   }
 
-  // Check if movementFrom region is adjacent to this region
   const canMoveTo = movementFrom && movementFrom !== region.territoryId && tInfo &&
     ADJACENCIES.some(([a, b]) =>
       (a === movementFrom && b === region.territoryId) ||
@@ -103,15 +159,9 @@ export default function RegionPanel({
 
       {region.currentTask !== 'NONE' && (
         <div style={styles.taskBar}>
-          Task: <b>{region.currentTask}</b>
-          {region.currentTask === 'BUILDING' && region.constructionTarget && (
-            <span> ({region.constructionTarget} — {region.constructionProgress?.toFixed(1)} pts)</span>
-          )}
-          {region.currentTask === 'CULTURE' && (
-            <span> ({region.cultureUpgradeProgress?.toFixed(1)} pts)</span>
-          )}
-          {region.currentTask === 'ARMIES' && (
-            <span> ({region.armyProductionProgress?.toFixed(2)})</span>
+          <div>Task: <b>{region.currentTask}</b></div>
+          {taskDetail && (
+            <div style={styles.taskDetail}>{taskDetail}</div>
           )}
         </div>
       )}
@@ -243,6 +293,11 @@ const styles = {
     padding: '4px 8px',
     marginBottom: 10,
     fontSize: 12,
+  },
+  taskDetail: {
+    color: '#9cf',
+    marginTop: 2,
+    fontSize: 11,
   },
   section: {
     marginTop: 12,

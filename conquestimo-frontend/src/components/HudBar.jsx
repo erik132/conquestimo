@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { endTurn, getUpkeepPreview } from '../api/gameApi'
 
 const SEASON_EMOJI = { SPRING: '🌱', SUMMER: '☀️', AUTUMN: '🍂', WINTER: '❄️' }
@@ -24,9 +25,11 @@ function useCountdown(turnStartedAt, turnTimerSeconds) {
 }
 
 export default function HudBar({ game, myPlayer, gameId, turnSubmitted, onTurnSubmitted, players }) {
+  const navigate = useNavigate()
   const [upkeep, setUpkeep] = useState(null)
   const [ending, setEnding] = useState(false)
   const [error, setError] = useState('')
+  const [quitting, setQuitting] = useState(false)
 
   const secondsLeft = useCountdown(game?.turnStartedAt, game?.turnTimerSeconds)
 
@@ -86,15 +89,10 @@ export default function HudBar({ game, myPlayer, gameId, turnSubmitted, onTurnSu
       <div style={styles.group}>
         <div style={styles.label}>Gold</div>
         <div style={styles.value}>
-          {myPlayer.gold ?? '—'} 🪙
-          {upkeep && isWinter && (
-            <span style={{ color: '#f88', fontSize: 11, marginLeft: 6 }}>
-              (next winter: {upkeep.required})
-            </span>
-          )}
-          {upkeep && !isWinter && (
-            <span style={{ color: '#aaa', fontSize: 11, marginLeft: 6 }}>
-              (winter: {upkeep.required})
+          {myPlayer.gold ?? '—'}🪙
+          {upkeep != null && (
+            <span style={{ color: isWinter ? '#f88' : '#aaa', fontSize: 11, marginLeft: 6 }}>
+              / {upkeep.required}🪙 winter
             </span>
           )}
         </div>
@@ -113,7 +111,6 @@ export default function HudBar({ game, myPlayer, gameId, turnSubmitted, onTurnSu
                 background: p.color,
                 marginRight: 3,
                 opacity: p.eliminated ? 0.3 : 1,
-                title: p.username,
               }}
               title={p.username}
             />
@@ -136,6 +133,18 @@ export default function HudBar({ game, myPlayer, gameId, turnSubmitted, onTurnSu
           >
             {ending ? 'Submitting...' : 'End Turn'}
           </button>
+        )}
+      </div>
+
+      <div style={styles.quitGroup}>
+        {quitting ? (
+          <div style={styles.quitConfirm}>
+            <span style={{ color: '#cde', fontSize: 12, marginRight: 6 }}>Quit game?</span>
+            <button style={styles.quitYes} onClick={() => navigate('/lobby')}>Yes</button>
+            <button style={styles.quitNo} onClick={() => setQuitting(false)}>No</button>
+          </div>
+        ) : (
+          <button style={styles.quitBtn} onClick={() => setQuitting(true)}>Quit</button>
         )}
       </div>
     </div>
@@ -196,5 +205,42 @@ const styles = {
     background: '#300',
     padding: '2px 8px',
     borderRadius: 3,
+  },
+  quitGroup: {
+    display: 'flex',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  quitBtn: {
+    padding: '4px 12px',
+    background: '#2a1a1a',
+    color: '#f88',
+    border: '1px solid #622',
+    borderRadius: 4,
+    cursor: 'pointer',
+    fontSize: 12,
+  },
+  quitConfirm: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+  },
+  quitYes: {
+    padding: '3px 10px',
+    background: '#4a1a1a',
+    color: '#f88',
+    border: '1px solid #822',
+    borderRadius: 3,
+    cursor: 'pointer',
+    fontSize: 12,
+  },
+  quitNo: {
+    padding: '3px 10px',
+    background: '#1a2535',
+    color: '#aaa',
+    border: '1px solid #334',
+    borderRadius: 3,
+    cursor: 'pointer',
+    fontSize: 12,
   },
 }

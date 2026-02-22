@@ -23,6 +23,7 @@ export default function GamePage() {
   const [turnSubmitted, setTurnSubmitted] = useState(false)
   const [resolution, setResolution] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [cancelDialogId, setCancelDialogId] = useState(null)
 
   // Load initial game state
   useEffect(() => {
@@ -89,6 +90,13 @@ export default function GamePage() {
     }
   }
 
+  const handleCancelDialogConfirm = async () => {
+    if (cancelDialogId) {
+      await handleCancelMovement(cancelDialogId)
+    }
+    setCancelDialogId(null)
+  }
+
   if (loading) {
     return (
       <div style={styles.loading}>Loading game...</div>
@@ -143,6 +151,9 @@ export default function GamePage() {
             onSelectTerritory={setSelectedTerritoryId}
             myPlayerId={myPlayerId}
             movementFrom={movementFrom}
+            movements={movements}
+            onArrowClick={(id) => setCancelDialogId(id)}
+            turnSubmitted={turnSubmitted}
           />
 
           {/* Queued movements panel */}
@@ -190,6 +201,18 @@ export default function GamePage() {
           resolution={resolution}
           onClose={() => setResolution(null)}
         />
+      )}
+
+      {cancelDialogId && (
+        <div style={dialogStyles.backdrop}>
+          <div style={dialogStyles.box}>
+            <p style={dialogStyles.text}>Cancel this movement order?</p>
+            <div style={dialogStyles.buttons}>
+              <button style={dialogStyles.yes} onClick={handleCancelDialogConfirm}>Yes</button>
+              <button style={dialogStyles.no} onClick={() => setCancelDialogId(null)}>No</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
@@ -280,5 +303,54 @@ const styles = {
     borderRadius: 4,
     cursor: 'pointer',
     fontSize: 14,
+  },
+}
+
+const dialogStyles = {
+  backdrop: {
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(0,0,0,0.6)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2000,
+  },
+  box: {
+    background: '#111d2b',
+    border: '1px solid #446',
+    borderRadius: 8,
+    padding: '24px 32px',
+    textAlign: 'center',
+    minWidth: 240,
+  },
+  text: {
+    color: '#cde',
+    fontSize: 15,
+    margin: '0 0 20px 0',
+  },
+  buttons: {
+    display: 'flex',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  yes: {
+    padding: '7px 24px',
+    background: '#4a1a1a',
+    color: '#f88',
+    border: '1px solid #822',
+    borderRadius: 4,
+    cursor: 'pointer',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  no: {
+    padding: '7px 24px',
+    background: '#1a2535',
+    color: '#aaa',
+    border: '1px solid #334',
+    borderRadius: 4,
+    cursor: 'pointer',
+    fontSize: 13,
   },
 }
