@@ -194,8 +194,7 @@ public class TurnResolutionService {
                     if (newProgress >= required) {
                         region.setFarmLevel(region.getFarmLevel() + 1);
                         region.setConstructionProgress(0);
-                        region.setConstructionTarget(null);
-                        region.setCurrentTask(RegionTask.NONE);
+                        // Keep BUILDING/FARM task by default so the next level starts automatically
                         events.add(TurnEventDto.buildingCompleted(region.getTerritoryId(), region.getId(), "FARM", region.getFarmLevel()));
                     }
                 } else if (target == ConstructionTarget.FORTRESS) {
@@ -203,8 +202,12 @@ public class TurnResolutionService {
                     if (newProgress >= required) {
                         region.setFortressLevel(region.getFortressLevel() + 1);
                         region.setConstructionProgress(0);
-                        region.setConstructionTarget(null);
-                        region.setCurrentTask(RegionTask.NONE);
+                        if (region.getFortressLevel() >= 5) {
+                            // Max level reached, fall back to training armies
+                            region.setConstructionTarget(null);
+                            region.setCurrentTask(RegionTask.ARMIES);
+                        }
+                        // else: keep BUILDING/FORTRESS task so the next level starts automatically
                         events.add(TurnEventDto.buildingCompleted(region.getTerritoryId(), region.getId(), "FORTRESS", region.getFortressLevel()));
                     }
                 }
@@ -223,8 +226,12 @@ public class TurnResolutionService {
                     Culture upgraded = region.getCulture().next();
                     region.setCulture(upgraded);
                     region.setCultureUpgradeProgress(0);
-                    region.setCurrentTask(RegionTask.NONE);
                     region.setLoyalty(region.getLoyalty() + 30);
+                    if (upgraded.isMaxLevel()) {
+                        // Max culture reached, fall back to training armies
+                        region.setCurrentTask(RegionTask.ARMIES);
+                    }
+                    // else: keep CULTURE task so the next upgrade starts automatically
                     events.add(TurnEventDto.cultureUpgraded(region.getTerritoryId(), region.getId(), upgraded.name()));
                 }
             }

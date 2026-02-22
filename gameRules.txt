@@ -7,6 +7,7 @@ How individual regions work:
 Each turn a region can be tasked to produce armies, upgrade culture, construct a building, produce diplomats or collect taxes producing gold. Only 1 option of the 5 can be chosen. Considering that there are not many buildings, perhaps it is better to display all the options to the player and have them pick 1. There should not be a confirm button, whatever option is chosen, that will work.
 
 By default all player regions are set to train armies. Neutral regions do not do anything during their turn.
+If a player region finishes building a fortress level, it will try to build another by default. The player can obviously choose something else. Same principle also applies to farms and culture upgrades.
 
 Culture:
 Each region can have one of the 4 culture levels:
