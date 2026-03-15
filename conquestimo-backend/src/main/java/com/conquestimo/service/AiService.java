@@ -66,6 +66,7 @@ public class AiService {
         int movesUsed = 0;
         movesUsed += executeAttacks(game, aiPlayer, target, allRegions, myRegions, movesUsed);
         movesUsed += executeNeutralOpportunism(game, aiPlayer, allRegions, myRegions, movesUsed);
+        movesUsed += executeEmptyEnemyOpportunism(game, aiPlayer, allRegions, myRegions, movesUsed);
 
         // Assign tasks to regions
         for (GameRegion region : myRegions) {
@@ -233,6 +234,20 @@ public class AiService {
             int totalAiArmies = adjacentOwned.stream().mapToInt(GameRegion::getArmyCount).sum();
             int defenderArmies = targetRegion.getArmyCount();
 
+            // Empty tile: send up to 3 armies from the best adjacent region
+            if (defenderArmies == 0) {
+                GameRegion attackFrom = adjacentOwned.stream()
+                        .filter(r -> r.getArmyCount() > 1)
+                        .max(Comparator.comparingInt(GameRegion::getArmyCount))
+                        .orElse(null);
+                if (attackFrom != null) {
+                    int toSend = armiesForEmptyCapture(attackFrom);
+                    queueMovement(game, aiPlayer, attackFrom, targetRegion, toSend);
+                    moves++;
+                }
+                continue;
+            }
+
             if (totalAiArmies <= defenderArmies) continue;
             if (targetRegion.getFortressLevel() > 0 && totalAiArmies < defenderArmies * 2) continue;
 
@@ -273,6 +288,30 @@ public class AiService {
                 queueMovement(game, aiPlayer, region, neutral, toCommit);
                 committed += toCommit;
                 moves++;
+            }
+        }
+        return moves;
+    }
+
+    private int executeEmptyEnemyOpportunism(Game game, GamePlayer aiPlayer,
+                                              List<GameRegion> allRegions, List<GameRegion> myRegions, int movesUsed) {
+        int moves = 0;
+        for (GameRegion region : myRegions) {
+            if (movesUsed + moves >= game.getMovementCap()) break;
+            if (region.getArmyCount() < 2) continue;
+
+            List<GameRegion> emptyEnemyTiles = allRegions.stream()
+                    .filter(r -> r.getOwner() != null && !r.getOwner().getId().equals(aiPlayer.getId()))
+                    .filter(r -> r.getArmyCount() == 0)
+                    .filter(r -> territoryLoader.areAdjacent(region.getTerritoryId(), r.getTerritoryId()))
+                    .collect(Collectors.toList());
+
+            for (GameRegion empty : emptyEnemyTiles) {
+                if (movesUsed + moves >= game.getMovementCap()) break;
+                int toSend = armiesForEmptyCapture(region);
+                queueMovement(game, aiPlayer, region, empty, toSend);
+                moves++;
+                break; // one grab per region per turn
             }
         }
         return moves;
@@ -377,6 +416,11 @@ public class AiService {
             }
         }
         return bestStep;
+    }
+
+    // Send up to 3 armies to claim an empty tile, always keeping at least 1 behind
+    private int armiesForEmptyCapture(GameRegion from) {
+        return Math.min(3, from.getArmyCount() - 1);
     }
 
     private void queueMovement(Game game, GamePlayer player, GameRegion from, GameRegion to, int count) {

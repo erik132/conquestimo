@@ -7,12 +7,6 @@ const TASKS = [
   { value: 'GOLD',      label: 'Collect Gold' },
   { value: 'CULTURE',   label: 'Upgrade Culture' },
   { value: 'DIPLOMATS', label: 'Produce Diplomats' },
-  { value: 'BUILDING',  label: 'Construct Building' },
-]
-
-const CONSTRUCTION_TARGETS = [
-  { value: 'FARM',     label: 'Farm' },
-  { value: 'FORTRESS', label: 'Fortress' },
 ]
 
 const CULTURE_UPGRADE_COST = { PRIMAL: 10, BASIC: 17, INTERMEDIATE: 28, ADVANCED: null }
@@ -83,7 +77,6 @@ export default function RegionPanel({
   onSetMovementFrom,
   movements,
 }) {
-  const [constructionTarget, setConstructionTarget] = useState('FARM')
   const [moveArmies, setMoveArmies] = useState(1)
   const [error, setError] = useState('')
 
@@ -100,11 +93,10 @@ export default function RegionPanel({
   const tInfo = TERRITORY_MAP[region.territoryId]
   const taskDetail = getTaskDetail(region)
 
-  const handleSetTask = async (task) => {
+  const handleSetTask = async (task, constructionTarget = null) => {
     setError('')
     try {
-      const updated = await setRegionTask(gameId, region.id, task,
-        task === 'BUILDING' ? constructionTarget : null)
+      const updated = await setRegionTask(gameId, region.id, task, constructionTarget)
       onRegionUpdated(updated)
     } catch (e) {
       setError(e.response?.data?.message || e.message || 'Failed to set task')
@@ -186,20 +178,27 @@ export default function RegionPanel({
                   {t.label}
                 </button>
               ))}
+              <button
+                style={{
+                  ...styles.taskBtn,
+                  background: region.currentTask === 'BUILDING' && region.constructionTarget === 'FARM' ? '#336' : '#223',
+                  border: region.currentTask === 'BUILDING' && region.constructionTarget === 'FARM' ? '1px solid #66f' : '1px solid #445',
+                }}
+                onClick={() => handleSetTask('BUILDING', 'FARM')}
+              >
+                Build Farm
+              </button>
+              <button
+                style={{
+                  ...styles.taskBtn,
+                  background: region.currentTask === 'BUILDING' && region.constructionTarget === 'FORTRESS' ? '#336' : '#223',
+                  border: region.currentTask === 'BUILDING' && region.constructionTarget === 'FORTRESS' ? '1px solid #66f' : '1px solid #445',
+                }}
+                onClick={() => handleSetTask('BUILDING', 'FORTRESS')}
+              >
+                Build Fortress
+              </button>
             </div>
-            {region.currentTask === 'BUILDING' && (
-              <div style={{ marginTop: 6 }}>
-                <select
-                  value={constructionTarget}
-                  onChange={e => setConstructionTarget(e.target.value)}
-                  style={styles.select}
-                >
-                  {CONSTRUCTION_TARGETS.map(ct => (
-                    <option key={ct.value} value={ct.value}>{ct.label}</option>
-                  ))}
-                </select>
-              </div>
-            )}
           </div>
 
           <div style={styles.section}>
@@ -335,14 +334,6 @@ const styles = {
     border: '1px solid #445',
     borderRadius: 3,
     marginRight: 6,
-  },
-  select: {
-    padding: '4px 6px',
-    background: '#223',
-    color: '#eef',
-    border: '1px solid #445',
-    borderRadius: 3,
-    fontSize: 12,
   },
   error: {
     color: '#f88',

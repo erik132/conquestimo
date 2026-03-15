@@ -6,3 +6,4 @@
 6. In case the user produces diplomats, the predicted loyalty change needs to be shown to the player.
 7. After the player chooses to move armies from 1 region to another, there must be an arrow visible between the 2 regions. Clicking on the arrow shows a dialog which asks if the player wants to cancel the movement order? Clicking yes will cancel it and close the dialog, clicking no will close the dialog and the movement order stays as it was. Arrows are only clickable before turn submission.
 8. If the player chooses to collect gold in a region, then the amount of gold collected per turn needs to be shown to the player.
+9. Building a farm and building a fortress must be separate buttons, not a dropdown.

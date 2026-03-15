@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5015,
+    host: true,
   },
   define: {
     global: 'globalThis',

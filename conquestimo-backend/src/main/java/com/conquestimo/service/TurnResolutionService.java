@@ -266,10 +266,20 @@ public class TurnResolutionService {
                 continue;
             }
 
-            if (!movement.isAttack()) {
+            // Re-check ownership at execution time: destination may have changed hands this turn
+            boolean isFriendlyNow = to.getOwner() != null
+                    && movement.getPlayer() != null
+                    && to.getOwner().getId().equals(movement.getPlayer().getId());
+
+            if (!movement.isAttack() && isFriendlyNow) {
                 // Friendly move
                 from.setArmyCount(from.getArmyCount() - armies);
                 to.setArmyCount(to.getArmyCount() + armies);
+                events.add(TurnEventDto.armyMoved(
+                        from.getTerritoryId(), to.getTerritoryId(),
+                        from.getId(), to.getId(), armies, false));
+            } else if (!movement.isAttack() && !isFriendlyNow) {
+                // Destination was captured before this reinforcement arrived — armies return home
                 events.add(TurnEventDto.armyMoved(
                         from.getTerritoryId(), to.getTerritoryId(),
                         from.getId(), to.getId(), armies, false));

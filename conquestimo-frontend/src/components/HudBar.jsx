@@ -92,7 +92,7 @@ export default function HudBar({ game, myPlayer, gameId, turnSubmitted, onTurnSu
           {myPlayer.gold ?? '—'}🪙
           {upkeep != null && (
             <span style={{ color: isWinter ? '#f88' : '#aaa', fontSize: 11, marginLeft: 6 }}>
-              / {upkeep.required}🪙 winter
+              / {upkeep.requiredGold}🪙 winter
             </span>
           )}
         </div>
