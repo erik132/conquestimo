@@ -256,6 +256,16 @@ public class TurnResolutionService {
 
             if (from == null || to == null) continue;
 
+            // Cancel movement if source region was captured before these armies could leave
+            boolean sourceStillOwned = from.getOwner() != null
+                    && movement.getPlayer() != null
+                    && from.getOwner().getId().equals(movement.getPlayer().getId());
+            if (!sourceStillOwned) {
+                movement.setExecuted(true);
+                movementRepository.save(movement);
+                continue;
+            }
+
             int armies = movement.getArmyCount();
 
             // Clamp to available armies (may have changed due to previous movements)
