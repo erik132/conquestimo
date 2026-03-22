@@ -51,6 +51,9 @@ This is an integer that determines how many army movement commands can a player 
 Army movement between friendly territories:
 Players are allowed to move armies between friendly territories. They can choose how many armies they wish to move.
 
+Army movements if territories change hands during turn:
+If a source region is captured before queued armies depart, those movements are cancelled. If a destination region is captured before a friendly reinforcement arrives, the armies remain at their source.
+
 Loyalty:
 Each region has a loyalty value of 0-100. It is an integer value. By default it rises based on the region culture per turn:
 Primal - 2 point per turn.
